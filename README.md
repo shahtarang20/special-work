@@ -13,22 +13,25 @@ vercel --prod     # deploy to your production domain
 
 Or connect this git repo to Vercel via the dashboard (New Project → Import) — no config needed, it's a static site.
 
-## Before you go live with AdSense
+## AdSense status
 
-1. **Apply for AdSense** at https://www.google.com/adsense with your live Vercel URL (or custom domain).
-2. Once approved, get your **publisher ID** (`ca-pub-XXXXXXXXXXXXXXXX`) and replace every occurrence of
-   `ca-pub-XXXXXXXXXXXXXXXX` in `index.html`.
-3. Update `ads.txt` at the project root with your real publisher ID (replace `pub-XXXXXXXXXXXXXXXX`).
-4. In your AdSense dashboard, create ad units (Ads → By ad unit → Display ads) for:
+Publisher ID `ca-pub-5841910105267784` is already wired into:
+- the AdSense loader script and every `data-ad-client` in `index.html`
+- the `google-adsense-account` verification meta tag in `<head>`
+- `ads.txt`
+
+To finish going live:
+
+1. In Google AdSense, verify the site (Sites → special-work.vercel.app → Verify site ownership) —
+   the meta tag / ads.txt method will pass automatically since both are already deployed.
+2. Once the site is approved, create real ad units (Ads → By ad unit → Display ads) for:
    - Top banner
    - Left rail (desktop)
    - Right rail (desktop)
    - Inline (game-over screen)
    - Bottom banner
-   Replace each `data-ad-slot="..."` value in `index.html` with the real slot ID.
-5. Point your custom domain (if any) at Vercel and add it in AdSense's site list.
-6. AdSense generally wants to see genuine content and some traffic before approving a site — keeping
-   the privacy policy page (`privacy.html`) linked and having the game playable helps meet their policies.
+   Replace each placeholder `data-ad-slot="..."` value in `index.html` with the real slot ID.
+3. If you attach a custom domain in Vercel, also add that domain in AdSense's site list and re-verify.
 
 ## Files
 
