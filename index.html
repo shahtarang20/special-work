@@ -62,13 +62,28 @@
 
       <div class="combo" id="combo">PERFECT!</div>
 
-      <button class="mute" id="muteBtn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+      <div class="milestone" id="milestone"></div>
+
+      <div class="top-controls">
+        <button class="icon-btn" id="pauseBtn" title="Pause" aria-label="Pause">⏸</button>
+        <button class="icon-btn" id="muteBtn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+      </div>
 
       <div class="overlay" id="startOverlay">
         <div class="badge">Skyline Stacker</div>
         <div class="title">Build it<br/>sky‑high</div>
         <div class="sub">Tap to drop the block. Line it up to keep the tower wide — perfect drops chain for bonus points.</div>
         <button class="play" id="startBtn">Tap to Start</button>
+        <div class="top-scores" id="topScoresStart" hidden>
+          <div class="top-scores-title">Your best runs</div>
+          <ol id="topScoresListStart"></ol>
+        </div>
+      </div>
+
+      <div class="overlay" id="pauseOverlay" hidden>
+        <div class="badge">Paused</div>
+        <div class="title">Take a<br/>breather</div>
+        <button class="play" id="resumeBtn">Resume</button>
       </div>
 
       <div class="overlay" id="endOverlay" hidden>
@@ -78,7 +93,14 @@
           <div class="stat"><div class="num" id="endScore">0</div><div class="lab">Score</div></div>
           <div class="stat"><div class="num" id="endBest">0</div><div class="lab">Best</div></div>
         </div>
-        <button class="play" id="retryBtn">Play Again</button>
+        <div class="end-actions">
+          <button class="play" id="retryBtn">Play Again</button>
+          <button class="ghost-btn" id="shareBtn">Share score</button>
+        </div>
+        <div class="top-scores" id="topScoresEnd" hidden>
+          <div class="top-scores-title">Top 5 runs</div>
+          <ol id="topScoresListEnd"></ol>
+        </div>
         <div class="hint">Space / Click / Tap to drop</div>
 
         <!-- Interstitial-style ad shown on game over -->

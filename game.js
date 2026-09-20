@@ -15,6 +15,15 @@
   const endTitleEl = document.getElementById('endTitle');
   const endBadgeEl = document.getElementById('endBadge');
   const muteBtn = document.getElementById('muteBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const pauseOverlay = document.getElementById('pauseOverlay');
+  const milestoneEl = document.getElementById('milestone');
+  const shareBtn = document.getElementById('shareBtn');
+  const topScoresStart = document.getElementById('topScoresStart');
+  const topScoresListStart = document.getElementById('topScoresListStart');
+  const topScoresEnd = document.getElementById('topScoresEnd');
+  const topScoresListEnd = document.getElementById('topScoresListEnd');
 
   let DPR = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
   let W = 0, H = 0;
@@ -71,6 +80,112 @@
   });
   function updateMuteIcon() { muteBtn.textContent = muted ? '🔇' : '🔊'; }
 
+  // ---------- top score history (local, per-browser) ----------
+  function loadTopScores() {
+    try { return JSON.parse(localStorage.getItem('skyline_top_scores') || '[]'); }
+    catch (e) { return []; }
+  }
+  function saveTopScores(list) {
+    try { localStorage.setItem('skyline_top_scores', JSON.stringify(list)); } catch (e) {}
+  }
+  function recordScore(s) {
+    if (s <= 0) return;
+    const list = loadTopScores();
+    list.push(s);
+    list.sort((a, b) => b - a);
+    saveTopScores(list.slice(0, 5));
+  }
+  function renderTopScores(listEl, wrapEl) {
+    const list = loadTopScores();
+    if (!list.length) { wrapEl.hidden = true; return; }
+    wrapEl.hidden = false;
+    listEl.innerHTML = list.map((s, i) =>
+      '<li><span>#' + (i + 1) + '</span><span>' + s + '</span></li>'
+    ).join('');
+  }
+
+  // ---------- haptics ----------
+  function vibrate(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+  }
+
+  // ---------- milestone toasts ----------
+  const MILESTONES = {
+    10: "You're on a roll!",
+    25: 'Skyscraper status!',
+    50: 'Halfway to legendary!',
+    100: 'Sky is not the limit!',
+  };
+  let lastMilestoneShown = 0;
+  function checkMilestone(s) {
+    const hit = Object.keys(MILESTONES).map(Number).find(m => s === m);
+    if (hit && hit !== lastMilestoneShown) {
+      lastMilestoneShown = hit;
+      showMilestone(hit + ' — ' + MILESTONES[hit]);
+    }
+  }
+  function showMilestone(text) {
+    milestoneEl.textContent = text;
+    milestoneEl.classList.remove('show');
+    void milestoneEl.offsetWidth;
+    milestoneEl.classList.add('show');
+    clearTimeout(showMilestone._t);
+    showMilestone._t = setTimeout(() => milestoneEl.classList.remove('show'), 1400);
+  }
+
+  // ---------- pause ----------
+  let paused = false;
+  function setPaused(v) {
+    if (state !== 'playing' && !v) return;
+    paused = v;
+    pauseOverlay.hidden = !v;
+    pauseBtn.textContent = v ? '▶' : '⏸';
+    if (audioCtx) { try { v ? audioCtx.suspend() : audioCtx.resume(); } catch (e) {} }
+  }
+  pauseBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (state === 'playing') setPaused(!paused);
+  });
+  resumeBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    setPaused(false);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && state === 'playing') setPaused(true);
+  });
+
+  // ---------- share ----------
+  shareBtn.addEventListener('click', async function (e) {
+    e.stopPropagation();
+    const text = 'I scored ' + score + ' in Skyline Stacker! Can you beat it?';
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Skyline Stacker', text: text, url: url });
+      } else {
+        await navigator.clipboard.writeText(text + ' ' + url);
+        shareBtn.textContent = 'Copied!';
+        setTimeout(() => { shareBtn.textContent = 'Share score'; }, 1500);
+      }
+    } catch (err) {}
+  });
+
+  // ---------- parallax skyline background ----------
+  const SKYLINE_BUILDINGS = (function () {
+    const arr = [];
+    let seed = 42;
+    function rand() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    for (let i = 0; i < 24; i++) {
+      arr.push({
+        x: i * 46 - 200,
+        w: 30 + rand() * 20,
+        h: 60 + rand() * 160,
+        alpha: 0.05 + rand() * 0.05,
+      });
+    }
+    return arr;
+  })();
+
   // ---------- palette ----------
   const PALETTE = [
     ['#ff6f9c', '#ff9a6f'],
@@ -106,6 +221,10 @@
     particles = [];
     fallingCuts = [];
     shake = 0;
+    lastMilestoneShown = 0;
+    paused = false;
+    pauseOverlay.hidden = true;
+    pauseBtn.textContent = '⏸';
     spawnNext();
     updateScoreUI();
   }
@@ -145,6 +264,7 @@
   function onAction() {
     ensureAudio();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if (paused) return;
     if (state === 'idle') startGame();
     else if (state === 'playing') drop();
     else if (state === 'over') startGame();
@@ -159,6 +279,7 @@
 
   function endGame() {
     state = 'over';
+    recordScore(score);
     if (score > best) {
       best = score;
       try { localStorage.setItem('skyline_best', String(best)); } catch (e) {}
@@ -174,7 +295,9 @@
       endTitleEl.textContent = pickFailMsg();
     }
     sfxFail();
+    vibrate(120);
     shake = 14;
+    renderTopScores(topScoresListEnd, topScoresEnd);
     setTimeout(() => { endOverlay.hidden = false; }, 380);
   }
 
@@ -232,12 +355,14 @@
       score += bonus;
       showCombo(combo > 1 ? ('COMBO x' + combo) : 'PERFECT!');
       sfxPerfect();
+      vibrate(30);
       spawnParticles(current.x, screenYForIndex(blocks.length), current.w, current.colorIdx, 14);
       shake = Math.max(shake, 4);
     } else {
       combo = 0;
       score += 1;
       sfxDrop(blocks.length);
+      vibrate(15);
       if (current.x < overlapLeft) {
         spawnFallingCut(current.x, overlapLeft - current.x, current.colorIdx, -1);
       }
@@ -248,6 +373,7 @@
     }
 
     updateScoreUI();
+    checkMilestone(score);
     blocks.push({ x: overlapLeft, w: overlapW, colorIdx: current.colorIdx });
     if (blocks[blocks.length - 1].w < 4) {
       state = 'over-falling';
@@ -263,6 +389,12 @@
     if (!lastTime) lastTime = t;
     const dt = Math.min(40, t - lastTime) / 16.6667;
     lastTime = t;
+
+    if (paused) {
+      render();
+      requestAnimationFrame(frame);
+      return;
+    }
 
     camY += (camYTarget - camY) * 0.14 * dt;
 
@@ -320,6 +452,8 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
+    drawSkyline();
+
     ctx.save();
     if (shake > 0) {
       ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
@@ -367,6 +501,19 @@
     vg.addColorStop(1, 'rgba(44,32,80,0)');
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, 90);
+  }
+
+  function drawSkyline() {
+    const parallax = camY * 0.25;
+    const baseline = H - 60;
+    ctx.save();
+    for (const b of SKYLINE_BUILDINGS) {
+      const bx = ((b.x + W / 2 - 200) % (W + 400) + (W + 400)) % (W + 400) - 200;
+      const by = baseline + parallax * 0.6;
+      ctx.fillStyle = 'rgba(255,255,255,' + b.alpha + ')';
+      ctx.fillRect(bx, by - b.h, b.w, b.h);
+    }
+    ctx.restore();
   }
 
   function drawRoundRect(x, y, w, h, r, colors) {
@@ -422,5 +569,6 @@
 
   // ---------- boot ----------
   resize();
+  renderTopScores(topScoresListStart, topScoresStart);
   requestAnimationFrame(frame);
 })();
