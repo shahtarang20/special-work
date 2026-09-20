@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Skyline Stacker — Free Block Stacking Game</title>
+<meta name="description" content="Skyline Stacker: a fast, addictive block-stacking arcade game. Play free in your browser on desktop or mobile." />
+
+<!--
+  GOOGLE ADSENSE SETUP
+  1. Replace ca-pub-XXXXXXXXXXXXXXXX below with your real AdSense publisher ID.
+  2. Replace the data-ad-slot values in index.html ad <ins> tags with your real ad unit slot IDs
+     (create ad units in your AdSense dashboard -> Ads -> By ad unit).
+  3. Add an ads.txt file at your domain root (already included in this project) with your publisher ID.
+  4. AdSense approval requires: real content, a privacy policy page, and traffic to your live domain.
+     This game page alone is a good candidate but you should add a short privacy policy + about section
+     before requesting approval (many devs add a /privacy route).
+-->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23241a3d%22/><rect x=%2225%22 y=%2262%22 width=%2250%22 height=%2214%22 rx=%224%22 fill=%22%23ff6f9c%22/><rect x=%2232%22 y=%2244%22 width=%2236%22 height=%2214%22 rx=%224%22 fill=%22%23ffd166%22/><rect x=%2238%22 y=%2226%22 width=%2224%22 height=%2214%22 rx=%224%22 fill=%22%235ce6c0%22/></svg>" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Top leaderboard ad (desktop) / banner (mobile) -->
+  <div class="ad-slot ad-top">
+    <span class="ad-label">Advertisement</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="1111111111"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </div>
+
+  <div class="layout">
+
+    <!-- Left rail ad — desktop only -->
+    <aside class="ad-slot ad-rail ad-rail-left">
+      <span class="ad-label">Advertisement</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="2222222222"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+    </aside>
+
+    <main class="stage">
+      <canvas id="game"></canvas>
+
+      <div class="hud">
+        <div class="score" id="score">0</div>
+        <div class="best" id="best">BEST 0</div>
+      </div>
+
+      <div class="combo" id="combo">PERFECT!</div>
+
+      <button class="mute" id="muteBtn" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+
+      <div class="overlay" id="startOverlay">
+        <div class="badge">Skyline Stacker</div>
+        <div class="title">Build it<br/>sky‑high</div>
+        <div class="sub">Tap to drop the block. Line it up to keep the tower wide — perfect drops chain for bonus points.</div>
+        <button class="play" id="startBtn">Tap to Start</button>
+      </div>
+
+      <div class="overlay" id="endOverlay" hidden>
+        <div class="badge" id="endBadge">Tower collapsed</div>
+        <div class="title" id="endTitle">Nice try</div>
+        <div class="stat-row">
+          <div class="stat"><div class="num" id="endScore">0</div><div class="lab">Score</div></div>
+          <div class="stat"><div class="num" id="endBest">0</div><div class="lab">Best</div></div>
+        </div>
+        <button class="play" id="retryBtn">Play Again</button>
+        <div class="hint">Space / Click / Tap to drop</div>
+
+        <!-- Interstitial-style ad shown on game over -->
+        <div class="ad-slot ad-inline">
+          <span class="ad-label">Advertisement</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="3333333333"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+        </div>
+      </div>
+
+      <div class="footer-tag">SKYLINE STACKER</div>
+    </main>
+
+    <!-- Right rail ad — desktop only -->
+    <aside class="ad-slot ad-rail ad-rail-right">
+      <span class="ad-label">Advertisement</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="4444444444"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+    </aside>
+
+  </div>
+
+  <!-- Bottom banner ad (mobile-friendly) -->
+  <div class="ad-slot ad-bottom">
+    <span class="ad-label">Advertisement</span>
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+         data-ad-slot="5555555555"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  </div>
+
+</div>
+
+<script>
+  // Reveal an ad slot's wrapper only once AdSense actually fills it with a
+  // creative, so unfilled placements collapse to nothing instead of showing
+  // an empty dashed box. AdSense marks a filled <ins> with
+  // data-ad-status="filled" (or "unfilled" if it has nothing to show).
+  document.querySelectorAll('.ad-slot').forEach(function (slot) {
+    var ins = slot.querySelector('.adsbygoogle');
+    if (!ins) return;
+
+    var observer = new MutationObserver(function () {
+      var status = ins.getAttribute('data-ad-status');
+      if (status === 'filled') {
+        slot.classList.add('is-filled');
+      } else if (status === 'unfilled') {
+        slot.classList.remove('is-filled');
+      }
+    });
+    observer.observe(ins, { attributes: true, attributeFilter: ['data-ad-status'] });
+
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {}
+  });
+</script>
+<script src="game.js"></script>
+</body>
+</html>
